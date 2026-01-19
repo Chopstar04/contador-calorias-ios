@@ -1,31 +1,65 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var totalCalorias = 0
-    @State private var alimentoDetectado = "Ninguno"
+
+    @State private var foods: [DetectedFood] = []
     @State private var mostrarCamara = false
 
+    var totalCalories: Int {
+        foods.reduce(0) { $0 + $1.calculatedCalories }
+    }
+
     var body: some View {
-        VStack(spacing: 25) {
+        NavigationView {
+            VStack {
 
-            Text("Contador con IA")
-                .font(.largeTitle)
-                .bold()
+                Text("Calorías estimadas")
+                    .font(.largeTitle)
+                    .bold()
 
-            Text("Alimento detectado:")
-            Text(alimentoDetectado)
-                .font(.title2)
+                List {
+                    ForEach($foods) { $food in
+                        VStack(alignment: .leading, spacing: 6) {
 
-            Text("Total de calorías")
-            Text("\(totalCalorias)")
-                .font(.largeTitle)
+                            Text(food.name)
+                                .font(.headline)
 
-            Button("📸 Tomar foto") {
-                mostrarCamara = true
+                            Text("Confianza: \(Int(food.confidence * 100))%")
+
+                            HStack {
+                                Text("Gramos (opcional):")
+                                TextField("ej. 150", value: $food.grams, format: .number)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 80)
+                            }
+
+                            Text("Calorías: \(food.calculatedCalories) kcal")
+                                .foregroundColor(.orange)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+
+                Text("Total: \(totalCalories) kcal")
+                    .font(.title)
+                    .bold()
+                    .padding()
+
+                Button("📸 Tomar foto") {
+                    mostrarCamara = true
+                }
+                .buttonStyle(.borderedProminent)
+                .padding()
+
             }
-
-            Spacer()
+            .sheet(isPresented: $mostrarCamara) {
+                CameraView { image in
+                    FoodClassifier.detectFoods(from: image) { detected in
+                        foods = detected
+                    }
+                }
+            }
         }
-        .padding()
     }
 }
